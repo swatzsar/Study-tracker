@@ -1,0 +1,149 @@
+10.25 11:00 AM
+<script>
+let goals = JSON.parse(localStorage.getItem('goals') || '[]');
+let studyHours = JSON.parse(localStorage.getItem('studyHours') || '[]').map(s=>({...s, date:new Date(s.date)}));
+let reminders = JSON.parse(localStorage.getItem('reminders') || '[]');
+let chartType = 'daily';
+
+// Save all data to localStorage
+function saveData() {
+    localStorage.setItem('goals', JSON.stringify(goals));
+    localStorage.setItem('studyHours', JSON.stringify(studyHours));
+    localStorage.setItem('reminders', JSON.stringify(reminders));
+}
+
+// Goals
+function addGoal() {
+    const goalInput = document.getElementById('goalInput');
+    const priority = document.getElementById('goalPriority').value;
+    const text = goalInput.value.trim();
+    if(text) {
+        goals.push({text, done:false, priority});
+        goalInput.value = '';
+        renderGoals();
+        saveData();
+    }
+}
+
+function renderGoals() {
+    const goalList = document.getElementById('goalList');
+    goalList.innerHTML = '';
+    goals.forEach((goal,index)=>{
+        const li = document.createElement('li');
+        li.textContent = `${goal.text} [${goal.priority}]`;
+        li.className = goal.done ? 'completed' : '';
+        li.onclick = ()=>{
+            goals[index].done = !goals[index].done;
+            renderGoals();
+            saveData();
+        };
+        goalList.appendChild(li);
+    });
+    updateStats();
+}
+
+// Study hours
+function addStudy() {
+    const input = document.getElementById('studyInput');
+    const hours = parseFloat(input.value);
+    if(hours && hours>0){
+        const date = new Date();
+        studyHours.push({hours,date});
+        input.value = '';
+        updateChart();
+        saveData();
+    }
+}
+
+// Reminders
+function addReminder() {
+    const input = document.getElementById('reminderInput');
+    const text = input.value.trim();
+    if(text){
+        reminders.push(text);
+        renderReminders();
+        input.value = '';
+        saveData();
+    }
+}
+
+function renderReminders() {
+    const list = document.getElementById('reminderList');
+    list.innerHTML = '';
+    reminders.forEach((r,index)=>{
+        const li = document.createElement('li');
+        li.textContent = r;
+        li.onclick = ()=>{
+            reminders.splice(index,1);
+            renderReminders();
+            saveData();
+        }
+        list.appendChild(li);
+    });
+}
+
+// Chart & stats
+function setChartType(type) {
+    chartType = type;
+    document.querySelectorAll('.chart-toggle button').forEach(btn=>btn.classList.remove('active'));
+    event.target.classList.add('active');
+    updateChart();
+}
+
+function updateChart() {
+    let labels = [];
+    let data = [];
+    if(chartType==='daily'){
+        labels = studyHours.map(s=>`${s.date.getDate()}/${s.date.getMonth()+1}`);
+        data = studyHours.map(s=>s.hours);
+    } else if(chartType==='weekly'){
+        const weeklyMap = {};
+        studyHours.forEach(s=>{
+            const week = getWeekNumber(s.date);
+            weeklyMap[week] = (weeklyMap[week]||0)+s.hours;
+        });
+        labels = Object.keys(weeklyMap).map(w=>'Week '+w);
+        data = Object.values(weeklyMap);
+    } else if(chartType==='monthly'){
+        const monthlyMap = {};
+        studyHours.forEach(s=>{
+            const month = s.date.getMonth()+1;
+            monthlyMap[month] = (monthlyMap[month]||0)+s.hours;
+        });
+        labels = Object.keys(monthlyMap).map(m=>'Month '+m);
+        data = Object.values(monthlyMap);
+    }
+
+    if(window.studyChartInstance) window.studyChartInstance.destroy();
+    const ctx = document.getElementById('studyChart').getContext('2d');
+    window.studyChartInstance = new Chart(ctx,{
+        type:'bar',
+        data:{labels,datasets:[{label:'Study Hours',data,backgroundColor:'#4a90e2'}]},
+        options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+    });
+    updateStats();
+}
+
+function updateStats() {
+    const total = studyHours.reduce((sum,s)=>sum+s.hours,0);
+    document.getElementById('totalHours').textContent = total;
+    const completed = goals.filter(g=>g.done).length;
+    const pending = goals.length-completed;
+    document.getElementById('completedGoals').textContent = completed;
+    document.getElementById('pendingGoals').textContent = pending;
+}
+
+// Helper
+function getWeekNumber(d){
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1)/7)
+}
+
+// Initialize UI
+renderGoals();
+renderReminders();
+updateChart();
+</script>

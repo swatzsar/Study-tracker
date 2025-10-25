@@ -1,0 +1,357 @@
+10.25 11:03 AM
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Study & Goal Tracker</title>
+<style>
+    :root {
+        --primary-color: #4a90e2;
+        --secondary-color: #f0f2f5;
+        --text-color: #333;
+        --bg-color: #fff;
+    }
+    [data-theme="dark"] {
+        --primary-color: #1e90ff;
+        --secondary-color: #121212;
+        --text-color: #eee;
+        --bg-color: #1a1a1a;
+    }
+
+    body {
+        font-family: 'Arial', sans-serif;
+        background: var(--secondary-color);
+        color: var(--text-color);
+        margin: 0;
+        padding: 0;
+        transition: all 0.3s ease;
+    }
+    header {
+        background: var(--primary-color);
+        color: white;
+        padding: 20px;
+        text-align: center;
+        position: relative;
+    }
+    .theme-toggle {
+        position: absolute;
+        right: 20px;
+        top: 20px;
+        cursor: pointer;
+        font-weight: bold;
+        padding: 5px 10px;
+        border: 1px solid white;
+        border-radius: 5px;
+    }
+    .container {
+        max-width: 900px;
+        margin: 20px auto;
+        padding: 20px;
+        background: var(--bg-color);
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    h2 {
+        color: var(--text-color);
+    }
+    .goal-input, .study-input {
+        display: flex;
+        margin-bottom: 15px;
+    }
+    .goal-input input, .study-input input, .goal-input select {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin-right: 10px;
+        outline: none;
+    }
+    .goal-input button, .study-input button {
+        padding: 10px 15px;
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+    .goal-input button:hover, .study-input button:hover {
+        background: #357ab8;
+    }
+    ul {
+        list-style: none;
+        padding: 0;
+    }
+    li {
+        background: #f7f7f7;
+        margin: 8px 0;
+        padding: 12px;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: 0.3s;
+    }
+    li.completed {
+        text-decoration: line-through;
+        color: gray;
+        opacity: 0.7;
+    }
+    canvas {
+        margin-top: 20px;
+    }
+    .stats {
+        display: flex;
+        justify-content: space-around;
+        flex-wrap: wrap;
+        margin-top: 20px;
+    }
+    .stat-card {
+        flex: 1 1 150px;
+        margin: 10px;
+        padding: 15px;
+        background: var(--secondary-color);
+        border-radius: 10px;
+        text-align: center;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        transition: 0.3s;
+    }
+    .stat-card h3 {
+        margin: 10px 0 5px 0;
+    }
+    .chart-toggle {
+        display: flex;
+        justify-content: center;
+        margin-top: 15px;
+    }
+    .chart-toggle button {
+        margin: 0 5px;
+        padding: 8px 12px;
+        border: 1px solid var(--primary-color);
+        background: var(--bg-color);
+        color: var(--primary-color);
+        border-radius: 5px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+    .chart-toggle button.active {
+        background: var(--primary-color);
+        color: white;
+    }
+    .reminder-input {
+        display: flex;
+        margin-top: 10px;
+    }
+    .reminder-input input {
+        flex: 1;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        margin-right: 10px;
+    }
+    .reminder-input button {
+        padding: 10px 15px;
+        background: #ff5c5c;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+</style>
+</head>
+<body data-theme="light">
+
+<header>
+    <h1>Advanced Study & Goal Tracker</h1>
+    <div class="theme-toggle" onclick="toggleTheme()">Dark Mode</div>
+</header>
+
+<div class="container">
+    <h2>Daily Goals</h2>
+    <div class="goal-input">
+        <input type="text" id="goalInput" placeholder="Add new goal">
+        <select id="goalPriority">
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+        </select>
+        <button onclick="addGoal()">Add Goal</button>
+    </div>
+    <ul id="goalList"></ul>
+
+    <h2>Study Tracker</h2>
+    <div class="study-input">
+        <input type="number" id="studyInput" placeholder="Add study hours" min="0">
+        <button onclick="addStudy()">Add Hours</button>
+    </div>
+
+    <div class="chart-toggle">
+        <button class="active" onclick="setChartType('daily')">Daily</button>
+        <button onclick="setChartType('weekly')">Weekly</button>
+        <button onclick="setChartType('monthly')">Monthly</button>
+    </div>
+
+    <canvas id="studyChart" width="400" height="200"></canvas>
+
+    <div class="stats">
+        <div class="stat-card">
+            <h3 id="totalHours">0</h3>
+            <p>Total Study Hours</p>
+        </div>
+        <div class="stat-card">
+            <h3 id="completedGoals">0</h3>
+            <p>Completed Goals</p>
+        </div>
+        <div class="stat-card">
+            <h3 id="pendingGoals">0</h3>
+            <p>Pending Goals</p>
+        </div>
+    </div>
+
+    <h2>Reminders</h2>
+    <div class="reminder-input">
+        <input type="text" id="reminderInput" placeholder="Add a reminder">
+        <button onclick="addReminder()">Add</button>
+    </div>
+    <ul id="reminderList"></ul>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let goals = [];
+let studyHours = [];
+let studyLabels = [];
+let reminders = [];
+let chartType = 'daily';
+
+function toggleTheme() {
+    const body = document.body;
+    if(body.dataset.theme === 'light') {
+        body.dataset.theme = 'dark';
+        document.querySelector('.theme-toggle').textContent = 'Light Mode';
+    } else {
+        body.dataset.theme = 'light';
+        document.querySelector('.theme-toggle').textContent = 'Dark Mode';
+    }
+}
+
+function addGoal() {
+    const goalInput = document.getElementById('goalInput');
+    const priority = document.getElementById('goalPriority').value;
+    const text = goalInput.value.trim();
+    if(text) {
+        goals.push({text, done:false, priority});
+        goalInput.value = '';
+        renderGoals();
+    }
+}
+
+function renderGoals() {
+    const goalList = document.getElementById('goalList');
+    goalList.innerHTML = '';
+    goals.forEach((goal,index)=>{
+        const li = document.createElement('li');
+        li.textContent = `${goal.text} [${goal.priority}]`;
+        li.className = goal.done ? 'completed' : '';
+        li.onclick = ()=>{
+            goals[index].done = !goals[index].done;
+            renderGoals();
+        };
+        goalList.appendChild(li);
+    });
+    updateStats();
+}
+
+function addStudy() {
+    const input = document.getElementById('studyInput');
+    const hours = parseFloat(input.value);
+    if(hours && hours>0){
+        const date = new Date();
+        studyHours.push({hours,date});
+        studyLabels.push(`${date.getDate()}/${date.getMonth()+1}`);
+        input.value = '';
+        updateChart();
+    }
+}
+
+function setChartType(type) {
+    chartType = type;
+    document.querySelectorAll('.chart-toggle button').forEach(btn=>btn.classList.remove('active'));
+    event.target.classList.add('active');
+    updateChart();
+}
+
+function updateChart() {
+    let labels = [];
+    let data = [];
+    const now = new Date();
+    if(chartType==='daily'){
+        labels = studyHours.map(s=>`${s.date.getDate()}/${s.date.getMonth()+1}`);
+        data = studyHours.map(s=>s.hours);
+    } else if(chartType==='weekly'){
+        const weeklyMap = {};
+        studyHours.forEach(s=>{
+            const week = getWeekNumber(s.date);
+            weeklyMap[week] = (weeklyMap[week]||0)+s.hours;
+        });
+        labels = Object.keys(weeklyMap).map(w=>'Week '+w);
+        data = Object.values(weeklyMap);
+    } else if(chartType==='monthly'){
+        const monthlyMap = {};
+        studyHours.forEach(s=>{
+            const month = s.date.getMonth()+1;
+            monthlyMap[month] = (monthlyMap[month]||0)+s.hours;
+        });
+        labels = Object.keys(monthlyMap).map(m=>'Month '+m);
+        data = Object.values(monthlyMap);
+    }
+
+    if(window.studyChartInstance) window.studyChartInstance.destroy();
+    const ctx = document.getElementById('studyChart').getContext('2d');
+    window.studyChartInstance = new Chart(ctx,{
+        type:'bar',
+        data:{
+            labels,
+            datasets:[{label:'Study Hours', data, backgroundColor:'#4a90e2'}]
+        },
+        options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+    });
+    updateStats();
+}
+
+function updateStats() {
+    const total = studyHours.reduce((sum,s)=>sum+s.hours,0);
+    document.getElementById('totalHours').textContent = total;
+    const completed = goals.filter(g=>g.done).length;
+    const pending = goals.length-completed;
+    document.getElementById('completedGoals').textContent = completed;
+    document.getElementById('pendingGoals').textContent = pending;
+}
+
+function addReminder() {
+    const input = document.getElementById('reminderInput');
+    const text = input.value.trim();
+    if(text){
+        reminders.push(text);
+        renderReminders();
+        input.value = '';
+    }
+}
+
+function renderReminders() {
+    const list = document.getElementById('reminderList');
+    list.innerHTML = '';
+    reminders.forEach((r,index)=>{
+        const li = document.createElement('li');
+        li.textContent = r;
+        li.onclick = ()=>{reminders.splice(index,1); renderReminders();}
+        list.appendChild(li);
+    });
+}
+
+// helper for weekly chart
+function getWeekNumber(d){
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const da
